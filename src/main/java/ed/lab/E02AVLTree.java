@@ -5,7 +5,6 @@ import java.util.Comparator;
 public class E02AVLTree<T> {
 
     private final Comparator<T> comparator;
-
     private Node<T> root;
     private int size;
 
@@ -16,146 +15,150 @@ public class E02AVLTree<T> {
     }
 
     public void insert(T value) {
-        this.root = insert(root, value);
+        root = insert(root, value);
     }
 
-    public void delete(T value) {
-
-    }
-
-    public T search(T value) {
-        Node<T> root = search(this.root, value);
-
-        if (root == null) {
-            return null;
-        }
-
-        return root.value;
-    }
-
-    public int height() {
-        if (this.root == null)
-            return 0;
-        return this.root.height;
-    }
-
-    public int size() {
-        return this.size;
-    }
-
-    private Node<T> search(Node<T> root, T value) {
-        if (this.root == null) {
-            return null;
-        }
-
-        int compare = comparator.compare(value, root.value);
-
-        if (compare == 0) {
-            return root;
-        }
-
-        if (compare < 0) {
-            return search(root.left, value);
-        }
-
-        return search(root.right, value);
-    }
-
-    private Node<T> insert(Node<T> root, T value) {
-        if (root == null) {
-            this.size++;
+    private Node<T> insert(Node<T> node, T value) {
+        if (node == null) {
+            size++;
             return new Node<>(value);
         }
 
-        int compare = comparator.compare(value, root.value);
+        int cmp = comparator.compare(value, node.value);
 
-        if (compare < 0) {
-            root.left = insert(root.left, value);
-        }
-        else if (compare > 0) {
-            root.right = insert(root.right, value);
+        if (cmp < 0) {
+            node.left = insert(node.left, value);
+        } else if (cmp > 0) {
+            node.right = insert(node.right, value);
         } else {
-            return root;
+            return node;
         }
 
-        root.height = 1 + Math.max(getHeight(root.left), getHeight(root.right));
+        updateHeight(node);
+        return balance(node);
+    }
 
-        int balance = getBalance(root);
+    public void delete(T value) {
+        root = delete(root, value);
+    }
 
-        if (balance < -1 && comparator.compare(value, root.left.value) > 0) {
-            root.left = rotateLeft(root.left);
-            return rotateRight(root);
+    private Node<T> delete(Node<T> node, T value) {
+        if (node == null) return null;
+
+        int cmp = comparator.compare(value, node.value);
+
+        if (cmp < 0) {
+            node.left = delete(node.left, value);
+        } else if (cmp > 0) {
+            node.right = delete(node.right, value);
+        } else {
+            if (node.left == null || node.right == null) {
+                size--;
+                node = (node.left != null) ? node.left : node.right;
+            } else {
+                Node<T> min = getMin(node.right);
+                node.value = min.value;
+                node.right = delete(node.right, min.value);
+            }
         }
 
-        if (balance > 1 && comparator.compare(value, root.right.value) < 0) {
-            root.right = rotateRight(root.right);
-            return rotateLeft(root);
+        if (node == null) return null;
+
+        updateHeight(node);
+        return balance(node);
+    }
+
+    public T search(T value) {
+        Node<T> n = root;
+
+        while (n != null) {
+            int cmp = comparator.compare(value, n.value);
+            if (cmp == 0) return n.value;
+            if (cmp < 0) n = n.left;
+            else n = n.right;
         }
 
-        if (balance < -1) {
-            return rotateRight(root);
+        return null;
+    }
+
+    public int height() {
+        return root == null ? 0 : root.height;
+    }
+
+    public int size() {
+        return size;
+    }
+
+    private Node<T> balance(Node<T> node) {
+        int bf = getBalance(node);
+
+        if (bf > 1) {
+            if (getBalance(node.left) < 0) {
+                node.left = rotateLeft(node.left);
+            }
+            return rotateRight(node);
         }
 
-        if (balance > 1) {
-            return rotateLeft(root);
+        if (bf < -1) {
+            if (getBalance(node.right) > 0) {
+                node.right = rotateRight(node.right);
+            }
+            return rotateLeft(node);
         }
 
-        return root;
+        return node;
     }
 
-    private int getBalance(Node<T> root) {
-        if (root == null)
-            return 0;
-
-        return getHeight(root.right) - getHeight(root.left);
+    private int getBalance(Node<T> node) {
+        return node == null ? 0 : getHeight(node.left) - getHeight(node.right);
     }
 
-    private Node<T> rotateLeft(Node<T> root) {
-        if (root == null) return null;
-
-        Node<T> newRoot = root.right;
-        root.right = newRoot.left;
-        newRoot.left = root;
-
-        updateHeight(root);
-        updateHeight(newRoot);
-
-        return newRoot;
+    private int getHeight(Node<T> node) {
+        return node == null ? 0 : node.height;
     }
 
-    private Node<T> rotateRight(Node<T> root) {
-        if (root == null) return null;
-
-        Node<T> newRoot = root.left;
-        root.left = newRoot.right;
-        newRoot.right = root;
-
-        updateHeight(root);
-        updateHeight(newRoot);
-
-        return newRoot;
+    private void updateHeight(Node<T> node) {
+        node.height = 1 + Math.max(getHeight(node.left), getHeight(node.right));
     }
 
-    private void updateHeight(Node<T> root) {
-        if (root == null) return;
+    private Node<T> rotateLeft(Node<T> x) {
+        Node<T> y = x.right;
+        Node<T> t = y.left;
 
-        root.height = 1 + Math.max(getHeight(root.left), getHeight(root.right));
+        y.left = x;
+        x.right = t;
+
+        updateHeight(x);
+        updateHeight(y);
+
+        return y;
     }
 
-    private int getHeight(Node<T> root) {
-        if (root == null)
-            return 0;
+    private Node<T> rotateRight(Node<T> y) {
+        Node<T> x = y.left;
+        Node<T> t = x.right;
 
-        return root.height;
+        x.right = y;
+        y.left = t;
+
+        updateHeight(y);
+        updateHeight(x);
+
+        return x;
+    }
+
+    private Node<T> getMin(Node<T> node) {
+        while (node.left != null) node = node.left;
+        return node;
     }
 
     private static class Node<T> {
-        protected T value;
-        protected Node<T> left;
-        protected Node<T> right;
-        protected int height;
+        T value;
+        Node<T> left;
+        Node<T> right;
+        int height;
 
-        public Node(T value) {
+        Node(T value) {
             this.value = value;
             this.height = 1;
         }
